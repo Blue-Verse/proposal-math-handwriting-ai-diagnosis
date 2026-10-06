@@ -89,7 +89,7 @@ job:
 
 ### 6-1. 제안서 사이트 URL
 https://proposal-router.claude-ai-b27.workers.dev/proposal-math-handwriting-ai-diagnosis/
-(2026-10-06 기준 배포 대기 — GitHub 레포 생성·R2 업로드는 사용자 승인 후 진행)
+(2026-10-06 배포 완료, HTTP 200 확인)
 
 ### 6-2. 지원 금액
 15,300,000원
