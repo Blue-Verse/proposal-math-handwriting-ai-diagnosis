@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="수학 손글씨 풀이 AI 진단 웹 서비스 구축 — 프로젝트 제안서" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['SUIT Variable', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              600: '#0284c7',
+              700: '#0369a1'
+            }
+          },
+          boxShadow: {
+            soft: '0 10px 30px -18px rgba(15, 23, 42, 0.35)'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    :root { color-scheme: light; font-size: 16px; /* 12pt minimum base */ }
+    body {
+      font-family: 'SUIT Variable', sans-serif;
+      font-size: 1rem; /* 16px = 12pt */
+      background-image:
+        radial-gradient(circle at 12% 18%, rgba(14, 165, 233, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 82%, rgba(2, 132, 199, 0.06), transparent 48%);
+    }
+
+    /* ─── doc-content typography (from harmony-link-be) ─── */
+    .doc-content h1, .doc-content h2, .doc-content h3, .doc-content h4 {
+      color: rgb(15 23 42); font-weight: 700; letter-spacing: -0.01em;
+      line-height: 1.3; margin-top: 1.6em; margin-bottom: 0.7em;
+    }
+    .doc-content h1 { font-size: 2rem; margin-top: 0.2em; }
+    .doc-content h2 { font-size: 1.4rem; }
+    .doc-content h3 { font-size: 1.15rem; }
+    .doc-content p, .doc-content li {
+      color: rgb(51 65 85); line-height: 1.8; font-size: 1rem;
+    }
+    .doc-content p, .doc-content ul, .doc-content ol,
+    .doc-content table, .doc-content pre, .doc-content blockquote {
+      margin-bottom: 1rem;
+    }
+    .doc-content ul, .doc-content ol { padding-left: 1.2rem; }
+    .doc-content ul { list-style: disc; }
+    .doc-content ol { list-style: decimal; }
+    .doc-content table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid rgb(226 232 240); border-radius: 0.75rem;
+      overflow: hidden; font-size: 1rem;
+    }
+    .doc-content th, .doc-content td {
+      border: 1px solid rgb(226 232 240); padding: 0.7rem 0.8rem;
+      text-align: left; vertical-align: top;
+    }
+    .doc-content th {
+      background: rgb(248 250 252); color: rgb(30 41 59); font-weight: 600;
+    }
+    .doc-content pre, .doc-content code {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+    .doc-content pre {
+      background: rgb(15 23 42); color: rgb(226 232 240);
+      padding: 1rem; border-radius: 0.75rem; overflow-x: auto;
+      font-size: 1rem; line-height: 1.65;
+    }
+    .doc-content p code, .doc-content li code,
+    .doc-content td code, .doc-content th code {
+      background: rgb(241 245 249); color: rgb(15 23 42);
+      border: 1px solid rgb(226 232 240); border-radius: 0.4rem;
+      padding: 0.08rem 0.4rem; font-size: 1em;
+    }
+    .doc-content blockquote {
+      border-left: 3px solid rgb(14 165 233); padding-left: 0.85rem;
+      color: rgb(71 85 105); background: rgb(240 249 255);
+      border-radius: 0.5rem; padding-top: 0.55rem; padding-bottom: 0.55rem;
+    }
+
+    /* ─── 12pt (16px) minimum font size ─── */
+    .text-xs { font-size: 1rem !important; }
+
+    /* ─── Timeline ─── */
+    .timeline { position: relative; padding-left: 2rem; }
+    .timeline::before {
+      content: ''; position: absolute; left: 0.6rem; top: 0.25rem; bottom: 0.25rem;
+      width: 2px; background: rgb(186 230 253);
+    }
+    .timeline-item { position: relative; margin-bottom: 1.75rem; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -1.65rem; top: 0.35rem;
+      width: 0.75rem; height: 0.75rem; border-radius: 50%;
+      background: rgb(2 132 199); border: 3px solid rgb(224 242 254);
+    }
+
+    /* ─── Page sections ─── */
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* ─── Mobile sidebar toggle ─── */
+    #sidebar-backdrop { display: none; }
+    #sidebar-backdrop.open { display: block; }
+    @media (max-width: 1023px) {
+      #sidebar { transform: translateX(-100%); transition: transform 0.2s ease; position: fixed; top: 0; left: 0; z-index: 40; height: 100vh; width: 80vw; max-width: 320px; }
+      #sidebar.open { transform: translateX(0); }
+    }
+  </style>
+  <title>수학 손글씨 풀이 AI 진단 웹 서비스 구축 — 프로젝트 제안서</title>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+  <div class="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+
+    
+    <header class="mb-6 rounded-2xl border border-slate-200/70 bg-white/85 px-5 py-3 shadow-soft backdrop-blur">
+      
+      <div class="flex flex-wrap items-center gap-3">
+        <button id="sidebar-toggle" class="lg:hidden inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 hover:border-sky-300 hover:text-sky-700">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          메뉴
+        </button>
+        <a href="#home" class="inline-flex items-center shrink-0 text-sm font-bold tracking-tight text-slate-800">
+          프로젝트 제안서
+        </a>
+        
+        <div class="hidden sm:block ml-auto text-right">
+          <p class="text-sm font-semibold tracking-[0.04em] text-sky-700/90">수학 손글씨 풀이 AI 진단 웹 서비스 구축</p>
+          <p class="text-xs text-slate-400">프로젝트 제안서</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+
+      
+      <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-30 lg:hidden" onclick="closeSidebar()"></div>
+      <aside id="sidebar" class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 shadow-soft backdrop-blur lg:sticky lg:top-6 lg:h-[calc(100vh-4rem)] lg:overflow-auto">
+        
+        <nav id="nav" class="space-y-1">
+          <a href="#home" data-page="home" class="nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700">홈</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">제안서</p>
+          <a href="#overview" data-page="overview" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">프로젝트 소개</a>
+          <a href="#estimate" data-page="estimate" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">견적서</a>
+          <a href="#manday" data-page="manday" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">공수계산서</a>
+          <a href="#prd" data-page="prd" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">PRD</a>
+          <div class="my-3 border-t border-slate-200"></div>
+          <p class="mb-2 mt-1 px-1 text-sm font-semibold tracking-[0.14em] text-slate-400">일정 & 경험</p>
+          <a href="#timeline" data-page="timeline" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">일정 제안</a>
+          <a href="#portfolio" data-page="portfolio" class="nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900">유사 프로젝트 경험</a>
+        </nav>
+      </aside>
+
+      
+      <main class="min-w-0">
+
+        
+        
+        
+        <div id="page-home" class="page-section active space-y-6">
+          
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-6 shadow-soft backdrop-blur md:p-8">
+            <p class="mb-2 text-xs font-semibold tracking-[0.2em] text-sky-700/80">프로젝트 제안서</p>
+            <h1 class="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">수학 손글씨 풀이 AI 진단 웹 서비스 구축</h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-slate-600 md:text-base">풀이닥터 MVP를 재원생 15명 파일럿이 가능한 수준으로 고도화합니다. 핵심은 세 가지입니다. ① 학생의 학년·단원·오개념에 맞춘 유사 복습 문제를 “생성 → 자동 검증 → 교사 승인” 3중 구조로 출제하고, ② AI 진단과 AI 독립 풀이를 교차검증해 일치할 때만 단계적 힌트를 제공하며, ③ 현재 사용 중인 GitHub·Firebase·Vercel 환경을 그대로 유지해 지원 종료 후 대표님이 직접 운영·개선할 수 있도록 인계합니다.</p>
+            <div class="mt-4 flex flex-wrap items-center gap-2">
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">15,300,000원 (VAT 별도)</span>
+              <span class="inline-flex rounded-full border border-sky-200 bg-sky-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-sky-700">70일 (12/31 이전 완료)</span>
+              <span class="inline-flex rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-sm font-semibold tracking-[0.12em] text-amber-700">웹 · AI·머신러닝 · 에듀테크</span>
+              <a href="https://www.wishket.com/project/158897/" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-sm font-medium text-slate-500 transition hover:border-sky-300 hover:text-sky-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                원본 공고
+              </a>
+            </div>
+          </div>
+
+          
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <a href="#overview" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">소개</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">프로젝트 소개</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">프로젝트 분석, 핵심 요구사항 정리, 제안 포인트</p>
+            </a>
+            <a href="#estimate" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">비용</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">견적서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">항목별 비용 산출 근거 및 상세 견적</p>
+            </a>
+            <a href="#manday" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">공수</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">공수계산서</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능별 개발 공수(man-day) 산출 내역</p>
+            </a>
+            <a href="#prd" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">기획</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">PRD</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">기능 요구사항 정의서, 사용자 스토리, 기술 제약</p>
+            </a>
+            <a href="#timeline" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">일정</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">일정 제안</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">단계별 마일스톤 및 산출물 일정표</p>
+            </a>
+            <a href="#portfolio" class="group rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+              <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-amber-100 text-amber-700 border-amber-200">경험</div>
+              <h2 class="text-lg font-semibold tracking-tight text-slate-900 group-hover:text-sky-700">유사 프로젝트 경험</h2>
+              <p class="mt-2 text-sm leading-7 text-slate-600">유사 프로젝트 수행 경험 및 기술 스택</p>
+            </a>
+          </div>
+
+          
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">3중</p><p class="mt-1 text-sm text-slate-500">유사문제 품질 검증</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">2-way</p><p class="mt-1 text-sm text-slate-500">진단 교차검증</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">15명</p><p class="mt-1 text-sm text-slate-500">파일럿 운영 지원</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">D-70</p><p class="mt-1 text-sm text-slate-500">12/31 이전 완료</p></div>
+            
+          </div>
+
+          
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">각 메뉴를 클릭하시면 상세 내용을 확인하실 수 있습니다.</p>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-overview" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>프로젝트 소개</h1>
+              <blockquote>풀이닥터 MVP를 재원생 15명 파일럿이 가능한 수준으로 고도화합니다. 핵심은 세 가지입니다. ① 학생의 학년·단원·오개념에 맞춘 유사 복습 문제를 “생성 → 자동 검증 → 교사 승인” 3중 구조로 출제하고, ② AI 진단과 AI 독립 풀이를 교차검증해 일치할 때만 단계적 힌트를 제공하며, ③ 현재 사용 중인 GitHub·Firebase·Vercel 환경을 그대로 유지해 지원 종료 후 대표님이 직접 운영·개선할 수 있도록 인계합니다.</blockquote>
+
+              <h2>프로젝트 개요</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td><a href="https://www.wishket.com/project/158897/" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline decoration-sky-300 hover:decoration-sky-500">수학 손글씨 풀이 AI 진단 웹 서비스 구축</a></td></tr>
+                <tr><td>카테고리</td><td>웹 · AI·머신러닝 · 에듀테크</td></tr>
+                <tr><td>제안 금액</td><td>15,300,000원 (VAT 별도)</td></tr>
+                <tr><td>제안 기간</td><td>70일 (12/31 이전 완료)</td></tr>
+                <tr><td>핵심 기술</td><td>Next.js(Vercel) · Firebase(Auth·Firestore·Storage·Cloud Functions) · 멀티모달 생성형 AI API(모델 교체 가능 어댑터) · 수식 검산 엔진 · KaTeX</td></tr>
+              </table>
+
+              <h2>핵심 요구사항 분석</h2>
+              <ul>
+                <li><strong>학생용 모바일 웹</strong> — 문제·손글씨 풀이 촬영/업로드 → 인식·정오 판정 → 오류 구간·오개념 진단 → 단계적 힌트(정답 비공개) → 재풀이·재평가 → 유사 복습 문제</li>
+<li><strong>교사용 PC 웹</strong> — 학생별 오답·재풀이 이력, 수업 준비 화면(취약 개념·반복 오답·재풀이 상태·설명 필요 여부), AI 진단 검수와 수정 이력 기록</li>
+<li><strong>학부모용</strong> — 요청한 학부모 대상 학습 리포트</li>
+<li><strong>AI 오류 방지</strong> — AI 진단 × AI 독립 풀이 교차검증, 불일치·저신뢰 결과는 교사 확인 대상으로 자동 분류</li>
+<li><strong>개인정보 보호</strong> — 외부 AI에는 익명 학생 코드와 풀이 데이터만 전달, 식별정보와 분석결과 분리 보관, 역할별 접근 권한, 보관·삭제 기준</li>
+<li><strong>기존 MVP 점검·오류 보완</strong>과 <strong>DB 신규 구축</strong>, 지원 종료 후 대표 직접 운영이 가능한 구조와 문서</li>
+<li><strong>가장 중요한 선정 기준</strong> — 학년·단원·수준에 맞는 유사 문제 생성 설계와 품질 확보·검증 방법</li>
+                
+              </ul>
+
+              <h2>제안 포인트</h2>
+              
+<h3>1) 유사 문제 생성 — “구조화 요청 + 소량 시드 예시 + 자동 검증” 혼합 방식 권장</h3>
+<p>문제 DB를 크게 구축하는 방식은 이번 예산·기간과 범위 제외 항목(자체 문제은행)에 맞지 않고, 키워드만으로 요청하는 방식은 학년 범위를 벗어난 개념이나 정답 오류가 섞일 위험이 큽니다. 두 방식의 장점만 취해 아래 파이프라인으로 설계합니다.</p>
+<table>
+<tr><th>단계</th><th>내용</th></tr>
+<tr><td>① 문제 프로파일 구조화</td><td>오답 진단 결과에서 학년·학기, 교육과정 단원(성취기준 코드), 핵심 개념, 오개념 유형, 문항 형식, 수 범위, 목표 난이도(원문항과 같은 수준 / 한 단계 쉬운 수준)를 JSON 프로파일로 추출</td></tr>
+<tr><td>② 단원 가드레일</td><td>단원별 “허용 개념 / 사용 금지 개념” 목록(예: 중1 일차방정식에서 연립·이차식 금지)을 프롬프트와 검증기에 동시 적용</td></tr>
+<tr><td>③ 소량 시드 예시</td><td>문제은행이 아니라 파일럿 대상 학년의 주요 단원별 <strong>유형 템플릿 3~5개</strong>를 교사진이 입력(교재 원문 저장 없이 유형만) → Few-shot 예시로 사용해 말투·난이도를 학원 수준에 맞춤</td></tr>
+<tr><td>④ 변형 수준 제어</td><td>숫자 변형 → 맥락 변형 → 구조 변형 3단계 중 오개념 유형에 맞는 변형을 선택, 문제·정답·풀이·사용 개념을 구조화된 형식으로 생성</td></tr>
+<tr><td>⑤ 자동 검증</td><td>(a) 다른 AI 호출이 문제를 독립적으로 풀어 정답 일치 확인 (b) 수식 검산 엔진으로 계산 결과 재확인 (c) 루브릭 판정: 단원·개념 일치, 금지 개념 사용 여부, 난이도 → 불통과 시 자동 재생성(최대 3회), 그래도 실패하면 교사 승인 대기열로 이동</td></tr>
+<tr><td>⑥ 교사 승인 모드</td><td>파일럿 초기에는 “교사 승인 후 학생 노출”, 적합률이 확인된 단원부터 “자동 노출”로 전환하는 단원별 스위치 제공</td></tr>
+</table>
+<p><strong>품질 측정:</strong> 착수 2주 내 실제 학생 답안 표본과 교사진이 고른 단원으로 평가셋을 만들고, 생성 문제를 교사진이 정확성·단원 적합성·난이도 적합성·오개념 겨냥도 4개 항목(5점 척도)으로 평가합니다. 파일럿 오픈 전 “정답 오류 노출 0건(자동검증 통과분 기준), 교사 적합 판정 80% 이상”을 목표로 측정 리포트를 제출하고, 미달 단원은 교사 승인 모드로 운영합니다.</p>
+
+<h3>2) 진단 신뢰성 — 교차검증 + 신뢰도 라우팅</h3>
+<ul>
+<li>손글씨 인식 → 단계별 풀이 전사(수식은 LaTeX) → <strong>AI 진단</strong>과 학생 풀이를 보지 않은 <strong>AI 독립 풀이</strong>를 별도로 실행해 정답·오류 단계를 비교</li>
+<li>일치 + 인식 신뢰도 높음 → 단계적 힌트 제공 / 불일치·인식 불확실·풀이 누락 → “교사 확인 필요”로 자동 분류하고 학생에게는 “선생님이 확인 후 알려드려요” 안내</li>
+<li>교사가 숙제 등록 시 <strong>교재 정답만 입력하는 선택 기능</strong>을 제공하면 세 번째 검증 축이 생겨 정오 판정 신뢰도가 크게 올라갑니다(선택, 협의 사항)</li>
+<li>힌트는 3단계(개념 상기 → 오류 위치 지적 → 다음 한 단계 유도)로 제한하고, 최종 정답·전체 풀이는 재풀이 이후 또는 교사 설정 시에만 공개</li>
+</ul>
+
+<h3>3) 기술 스택 — 현재 GitHub·Firebase·Vercel 유지 권장</h3>
+<ul>
+<li>대표님이 이미 3종 서비스를 운영 중인 환경이라 인계 후 운영 부담이 가장 작고, 파일럿 15명~재원생 69명 규모에서 비용·성능 모두 충분합니다.</li>
+<li>Firebase Auth(역할: 학생·교사·학부모·관리자) · Firestore(서울 리전) · Storage(풀이 이미지) · Cloud Functions(AI 호출·익명화·검증 파이프라인) · Vercel(Next.js 화면)</li>
+<li>AI API 키와 식별정보는 서버(Functions)에서만 다루고, 화면에서는 직접 호출하지 않습니다. AI 모델은 어댑터 구조로 분리해 모델 교체·가격 변동에 대응합니다.</li>
+</ul>
+
+<h3>4) 교사 검수 결과 활용 — 이번 범위는 “기록 + 사례 기반 반영”까지</h3>
+<ul>
+<li><strong>포함:</strong> 원 진단 / 교사 수정본 / 수정 사유 분류 / 오개념 태그를 구조화해 저장 → 교사가 승인한 수정 사례를 같은 단원 진단 시 예시로 자동 주입(사례 기반 반영) → 월간 오진단 유형 리포트</li>
+<li><strong>제외 권장:</strong> 모델 미세조정(파인튜닝) — 15명 파일럿 규모로는 데이터가 부족해 효과 대비 비용이 큽니다. 데이터가 쌓이는 확장 단계에서 검토하도록 데이터 구조만 미리 맞춰 둡니다.</li>
+</ul>
+
+
+              <h2>사용 기술 및 툴</h2>
+              <h3>개발 기술</h3>
+              <div class="flex flex-wrap gap-2 not-prose mb-4">
+                <span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Next.js</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">React</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">TypeScript</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Tailwind CSS</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Firebase Auth</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Cloud Firestore</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Firebase Storage</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Cloud Functions</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">Vercel</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">멀티모달 생성형 AI API</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">KaTeX / LaTeX</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">수식 검산 엔진</span>
+<span class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">GitHub Actions</span>
+                
+              </div>
+              <h3>협업 및 커뮤니케이션</h3>
+              <div class="flex flex-wrap gap-2 not-prose">
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">카카오톡 / Slack</span>
+<span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Google Meet 주간 미팅</span>
+<span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">Notion 문서</span>
+<span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">GitHub Issues</span>
+<span class="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-sm font-medium text-amber-700">스테이징 상시 공유</span>
+                
+              </div>
+            </article>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-estimate" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>견적서</h1>
+              <blockquote>본 견적서는 프로젝트 요구사항 분석을 기반으로 산출되었습니다.</blockquote>
+
+              <h2>견적 요약</h2>
+              <table>
+                <tr><th>항목</th><th>내용</th></tr>
+                <tr><td>프로젝트명</td><td>수학 손글씨 풀이 AI 진단 웹 서비스 구축</td></tr>
+                <tr><td>제안 금액</td><td><strong>15,300,000원 (VAT 별도)</strong></td></tr>
+                <tr><td>제안 기간</td><td>70일 (12/31 이전 완료)</td></tr>
+                <tr><td>견적 유효기간</td><td>제안일로부터 30일</td></tr>
+              </table>
+
+              <h2>상세 견적 내역</h2>
+              <table>
+                <thead>
+                  <tr><th>구분</th><th>항목</th><th>수량</th><th>단가</th><th>금액</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>기획</td><td>MVP 점검·오류 목록화, 요구사항·화면 확정, 평가셋 설계</td><td>1식</td><td>-</td><td>1,500,000원</td></tr>
+<tr><td>디자인</td><td>학생용 모바일 웹·교사용 PC 웹·학부모 리포트 UI/UX</td><td>1식</td><td>-</td><td>1,800,000원</td></tr>
+<tr><td>AI 진단</td><td>손글씨 인식·오류 진단 프롬프트, 교차검증·신뢰도 라우팅, 단계적 힌트</td><td>1식</td><td>-</td><td>3,000,000원</td></tr>
+<tr><td>AI 유사문제</td><td>문제 프로파일·단원 가드레일·시드 예시 입력, 생성·자동검증·교사 승인 대기열</td><td>1식</td><td>-</td><td>2,200,000원</td></tr>
+<tr><td>프론트엔드</td><td>학생용 화면(촬영·결과·힌트·재풀이·복습 문제)</td><td>1식</td><td>-</td><td>2,000,000원</td></tr>
+<tr><td>프론트엔드</td><td>교사용 화면(이력·수업 준비·검수) + 학부모 리포트</td><td>1식</td><td>-</td><td>1,800,000원</td></tr>
+<tr><td>백엔드/DB</td><td>Firestore 스키마, Functions, 역할 권한, 익명화·분리 보관, 보관·삭제 배치</td><td>1식</td><td>-</td><td>1,800,000원</td></tr>
+<tr><td>QA·인계</td><td>통합 테스트, 파일럿 운영 지원, 프롬프트·진단 기준 문서, 운영 매뉴얼</td><td>1식</td><td>-</td><td>1,200,000원</td></tr>
+                  
+                </tbody>
+                <tfoot>
+                  <tr><th colspan="4">합계 (VAT 별도)</th><th>15,300,000원 (VAT 별도)</th></tr>
+                </tfoot>
+              </table>
+
+              <h2>산정 근거</h2>
+              
+<ul>
+<li>예산 1,800만원 대비 <strong>1,530만원(VAT 별도)</strong>으로 공고의 필수 과업 2-1 ~ 2-5 전체를 파일럿 운영 수준으로 구현합니다.</li>
+<li>AI 비중(진단 + 유사문제 = 약 34%)을 가장 크게 잡았습니다. 공고에서 가장 중요한 선정 기준이 유사문제 품질이므로 프롬프트 설계만이 아니라 <strong>평가셋 구축과 반복 측정</strong> 공수를 포함했습니다.</li>
+<li>기존 MVP와 Firebase·Vercel 환경을 재사용해 인프라 구축 공수를 줄이고, 그만큼 AI 품질 검증에 배분했습니다.</li>
+</ul>
+<h3>조정 제안 (예산 안에서 품질을 지키기 위해)</h3>
+<table>
+<tr><th>항목</th><th>제안</th><th>이유</th></tr>
+<tr><td>학부모 리포트</td><td>웹 링크형 주간 리포트(요청 학부모 대상)로 구현, 카카오 알림톡 자동 발송은 옵션</td><td>알림톡은 발신 프로필 심사·건당 비용이 들어 파일럿에는 링크 공유로 충분</td></tr>
+<tr><td>교사 검수 반영</td><td>기록 + 사례 기반 반영까지, 파인튜닝 제외</td><td>15명 규모 데이터로는 효과 대비 비용이 큼</td></tr>
+<tr><td>멀티 테넌트</td><td>구현 제외, 데이터에 학원 구분 필드만 미리 설계</td><td>공고 제외 범위 준수 + 확장 대비</td></tr>
+<tr><td>학년 범위</td><td>파일럿 15명 학년·단원부터 시드 예시·가드레일 우선 구축</td><td>전 학년 동시 구축보다 품질 검증 밀도가 높음</td></tr>
+</table>
+<p>※ 공고상 비용 차이 문의에 대한 답: 혼합 방식은 위 금액에 포함되며 추가 비용이 없습니다. 문제 DB를 본격 구축하는 방식은 단원별 입력·검수 공수와 교재 저작권 검토가 더해져 약 300~400만원 추가가 예상되어 권장하지 않습니다.</p>
+
+
+              <h2>포함 사항</h2>
+              <ul>
+                <li>소스 코드 전체 이관</li>
+                <li>개발 문서 (API 명세서, DB 스키마, 배포 가이드)</li>
+                <li>1개월 무상 하자 보수</li>
+                <li>배포 환경 세팅 (1회)</li>
+              </ul>
+
+              <h2>불포함 사항</h2>
+              <ul>
+                <li>서버 호스팅 비용 (AWS, Vercel 등)</li>
+                <li>도메인 구매 비용</li>
+                <li>외부 유료 API 사용 비용</li>
+                <li>하자 보수 기간 이후 유지보수</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-manday" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>공수계산서</h1>
+              <blockquote>기능별 개발 공수(Man-Day)를 산출하여 일정과 비용의 근거를 제시합니다.</blockquote>
+
+              <h2>공수 요약</h2>
+              <table>
+                <tr><th>구분</th><th>공수 (M/D)</th><th>비율</th></tr>
+                <tr><td>기획/설계</td><td>6 M/D</td><td>9%</td></tr>
+<tr><td>UI/UX 디자인</td><td>8 M/D</td><td>13%</td></tr>
+<tr><td>AI 진단·교차검증</td><td>12 M/D</td><td>19%</td></tr>
+<tr><td>AI 유사문제 생성·검증</td><td>8 M/D</td><td>13%</td></tr>
+<tr><td>프론트엔드</td><td>17 M/D</td><td>27%</td></tr>
+<tr><td>백엔드/DB·보안</td><td>7 M/D</td><td>11%</td></tr>
+<tr><td>QA·파일럿·인계</td><td>6 M/D</td><td>9%</td></tr>
+                
+                <tr><th>합계</th><th>64 M/D</th><th>100%</th></tr>
+              </table>
+
+              <h2>기능별 상세 공수</h2>
+              <table>
+                <thead>
+                  <tr><th>기능</th><th>세부 작업</th><th>담당</th><th>공수 (M/D)</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td rowspan="3">기획</td><td>기존 MVP 코드·데이터 점검, 오류 목록과 보완 계획</td><td>기획/개발</td><td>2</td></tr>
+<tr><td>요구사항 정의서·화면 설계서 확정</td><td>기획</td><td>2.5</td></tr>
+<tr><td>평가셋 설계(답안 표본·단원 선정·평가 루브릭)</td><td>기획/AI</td><td>1.5</td></tr>
+<tr><td rowspan="2">디자인</td><td>학생용 모바일 웹(촬영 가이드·결과·힌트·재풀이)</td><td>디자인</td><td>4</td></tr>
+<tr><td>교사용 PC 웹(대시보드·검수) + 학부모 리포트</td><td>디자인</td><td>4</td></tr>
+<tr><td rowspan="4">AI 진단</td><td>멀티모달 손글씨 인식·풀이 전사, 모델별 인식률 비교</td><td>AI</td><td>3</td></tr>
+<tr><td>오류 구간·오개념 진단 프롬프트, 오개념 분류 체계</td><td>AI</td><td>3</td></tr>
+<tr><td>AI 독립 풀이·교차검증·신뢰도 라우팅</td><td>AI/백엔드</td><td>3.5</td></tr>
+<tr><td>단계적 힌트·재평가 로직</td><td>AI</td><td>2.5</td></tr>
+<tr><td rowspan="4">AI 유사문제</td><td>문제 프로파일 추출·단원 가드레일</td><td>AI</td><td>2</td></tr>
+<tr><td>시드 예시 입력 화면·생성 프롬프트</td><td>AI/프론트</td><td>2</td></tr>
+<tr><td>자동 검증(독립 풀이·수식 검산·루브릭)·재생성</td><td>AI/백엔드</td><td>2.5</td></tr>
+<tr><td>교사 승인 대기열·단원별 자동 노출 스위치</td><td>프론트</td><td>1.5</td></tr>
+<tr><td rowspan="2">학생용</td><td>로그인·숙제 목록·촬영/업로드(크롭·흐림 감지)</td><td>프론트</td><td>3</td></tr>
+<tr><td>진단 결과·힌트·재풀이·복습 문제 화면</td><td>프론트</td><td>5</td></tr>
+<tr><td rowspan="3">교사·학부모</td><td>학생별 오답·재풀이 이력, 수업 준비 화면</td><td>프론트</td><td>4</td></tr>
+<tr><td>AI 진단 검수·수정 이력, 교사 확인 대기열</td><td>프론트</td><td>3</td></tr>
+<tr><td>학부모 학습 리포트(요청자 대상)</td><td>프론트</td><td>2</td></tr>
+<tr><td rowspan="3">백엔드/DB</td><td>Firestore 스키마 신규 구축·보안 규칙(역할 권한)</td><td>백엔드</td><td>3</td></tr>
+<tr><td>익명 학생 코드·식별정보 분리 보관·보관/삭제 배치</td><td>백엔드</td><td>2.5</td></tr>
+<tr><td>AI 호출 Functions·사용량 한도·로그</td><td>백엔드</td><td>1.5</td></tr>
+<tr><td rowspan="3">QA·인계</td><td>통합 테스트·교사진 진단 적합성 검증 지원</td><td>QA</td><td>2.5</td></tr>
+<tr><td>파일럿 운영 모니터링·프롬프트 튜닝</td><td>AI/QA</td><td>2</td></tr>
+<tr><td>프롬프트·진단 기준 문서, 운영 매뉴얼, 인계 세션</td><td>기획</td><td>1.5</td></tr>
+                  
+                </tbody>
+              </table>
+
+              <h2>산정 기준</h2>
+              <ul>
+                <li>1 M/D = 8시간 기준 (1인 1일 작업량)</li>
+                <li>주 5일 근무 기준</li>
+                <li>버퍼 10~15% 포함</li>
+                <li>유사 프로젝트 수행 경험 기반 효율적 개발</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-prd" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>PRD (Product Requirements Document)</h1>
+              <blockquote>프로젝트 요구사항을 정의하고 기능 범위를 명확히 합니다.</blockquote>
+
+              <h2>1. 프로젝트 배경 및 목적</h2>
+              
+<ul>
+<li><strong>현재:</strong> 밤 9시경 숙제 완료 → 다음 날 등원 후 채점·오답 지도까지 약 19시간 동안 오개념이 방치되고, 원생 1인당 하루 7.7분이 채점·오답 분류에 사용됩니다.</li>
+<li><strong>목표:</strong> 숙제 직후 즉시 채점·진단 → 힌트로 그 자리에서 재풀이 → 교사는 수업 전 “누가 어디서 막혔는지” 확인 → 학부모 상담에 축적된 기록 활용.</li>
+<li><strong>이번 단계:</strong> 1단계 MVP(답안 9건 검증)를 재원생 15명 파일럿 운영이 가능한 수준으로 고도화.</li>
+<li><strong>성공 지표(파일럿):</strong> 정답 오류가 있는 힌트·복습 문제 학생 노출 0건 목표, 교사 확인 대기 비율·교사 수정률 측정, 재풀이 시도율, 교사 채점 시간 절감.</li>
+</ul>
+
+              <h2>2. 사용자 정의</h2>
+              <table>
+                <thead>
+                  <tr><th>사용자 유형</th><th>설명</th><th>주요 기능</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>학생</td><td>집에서 휴대전화로 숙제 풀이 제출(모바일 웹)</td><td>촬영·업로드, 진단 결과, 단계적 힌트, 재풀이, 유사 복습 문제</td></tr>
+<tr><td>교사(4명)</td><td>PC 웹으로 수업 준비·검수</td><td>학생별 이력, 수업 준비 화면, AI 진단 검수·수정, 확인 대기열, 시드 예시·복습 문제 승인</td></tr>
+<tr><td>학부모</td><td>요청한 학부모만 리포트 열람</td><td>주간 학습 리포트(오답 경향·재풀이·취약 개념)</td></tr>
+<tr><td>대표(관리자)</td><td>운영·설정 총괄</td><td>계정·권한, 숙제 등록, 자동 노출 스위치, AI 사용량, 보관·삭제 기준</td></tr>
+                  
+                </tbody>
+              </table>
+
+              <h2>3. 기능 요구사항</h2>
+              
+<h3>3.1 학생용 (모바일 웹)</h3>
+<ul>
+<li><strong>[필수]</strong> 숙제 목록 → 문항 선택 → 문제·손글씨 풀이 촬영/업로드(촬영 가이드, 크롭, 흐림 감지 후 재촬영 안내)</li>
+<li><strong>[필수]</strong> 손글씨 풀이 인식과 정오 판정, 오류 구간 표시와 오개념 진단</li>
+<li><strong>[필수]</strong> 단계적 힌트 3단계(정답 비공개) → 재풀이 촬영 → 재평가, 시도 이력 기록</li>
+<li><strong>[필수]</strong> 틀린 문제의 유사 복습 문제(자동검증 통과분 또는 교사 승인분만 노출)</li>
+<li><strong>[필수]</strong> 교차검증 불일치 시 “선생님 확인 중” 상태 표시</li>
+</ul>
+<h3>3.2 교사용 (PC 웹)</h3>
+<ul>
+<li><strong>[필수]</strong> 학생별 오답·재풀이 이력(원본 이미지·AI 진단·힌트 사용 단계)</li>
+<li><strong>[필수]</strong> 수업 준비 화면: 반·학생별 취약 개념, 반복 오답, 재풀이 상태, 설명 필요 여부</li>
+<li><strong>[필수]</strong> AI 진단 검수: 확인/수정/반려, 수정 사유 분류, 수정 이력 보존</li>
+<li><strong>[필수]</strong> 교사 확인 대기열(교차검증 불일치·저신뢰), 복습 문제 승인 대기열</li>
+<li><strong>[선택]</strong> 숙제 등록 시 교재 정답만 입력(정오 판정 3번째 검증 축)</li>
+</ul>
+<h3>3.3 학부모용</h3>
+<ul>
+<li><strong>[필수]</strong> 요청한 학부모 대상 주간 학습 리포트(웹 링크, 권한 확인)</li>
+<li><strong>[옵션]</strong> 카카오 알림톡 자동 발송</li>
+</ul>
+<h3>3.4 AI 파이프라인</h3>
+<ul>
+<li><strong>[필수]</strong> 인식 → 진단 → 독립 풀이 → 교차검증 → 신뢰도 라우팅(힌트 제공 / 교사 확인)</li>
+<li><strong>[필수]</strong> 유사문제: 문제 프로파일 → 단원 가드레일 → 시드 예시 → 생성 → 자동 검증 → 재생성/승인 대기</li>
+<li><strong>[필수]</strong> 교사 승인 수정 사례의 사례 기반 반영, 월간 오진단 리포트</li>
+<li><strong>[필수]</strong> 모델 교체 가능한 어댑터, 프롬프트 버전 관리, 호출 로그·사용량 한도</li>
+</ul>
+<h3>3.5 개인정보 보호</h3>
+<ul>
+<li><strong>[필수]</strong> 학생 계정·내부 관리번호, 외부 AI에는 익명 학생 코드 + 풀이 데이터만 전달(이미지 메타데이터 제거)</li>
+<li><strong>[필수]</strong> 식별정보 컬렉션과 분석결과 컬렉션 분리, 연결 정보는 관리자 권한에서만 조회</li>
+<li><strong>[필수]</strong> 역할별 보안 규칙(학생 본인 / 담당 교사 / 해당 자녀 학부모 / 관리자), 보관 기간 경과 데이터 자동 삭제</li>
+</ul>
+              
+
+              <h2>4. 비기능 요구사항</h2>
+              <table>
+                <thead>
+                  <tr><th>항목</th><th>요구사항</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>응답 시간</td><td>진단 결과는 제출 후 대부분 1분 이내 표시 목표(처리 중 상태 안내), 교사 화면 일반 조회 2초 이내</td></tr>
+<tr><td>신뢰성</td><td>교차검증 불일치·저신뢰는 학생에게 힌트를 주지 않고 교사 확인으로 분류</td></tr>
+<tr><td>보안·개인정보</td><td>AI 키·식별정보 서버 전용, Firestore 보안 규칙, 서울 리전, HTTPS</td></tr>
+<tr><td>비용 관리</td><td>AI 호출 사용량 일/월 한도와 초과 알림, 1주차 호출당 비용 측정 보고</td></tr>
+<tr><td>운영성</td><td>프롬프트·진단 기준을 코드와 분리된 설정 문서로 관리 → 대표가 직접 수정 가능</td></tr>
+<tr><td>호환성</td><td>학생용 iOS Safari·Android Chrome 최신 2개 버전, 교사용 Chrome/Edge</td></tr>
+                  
+                </tbody>
+              </table>
+
+              <h2>5. 기술 제약사항</h2>
+              
+<ul>
+<li>지원사업 기간 고정: <strong>2026년 12월 31일까지 모든 과업 완료</strong></li>
+<li>현재 GitHub·Firebase·Vercel 환경 유지, 소스코드·DB 스키마는 발주사 소유로 발주사 저장소에 커밋</li>
+<li>AI API 계정은 발주사 명의 권장(키 이관 이슈 방지), API 사용료는 발주사 부담</li>
+<li>교재 원문 대량 저장 지양(저작권) — 시드 예시는 유형 템플릿 형태</li>
+</ul>
+
+              <h2>6. 범위 외 사항 (Out of Scope)</h2>
+              <ul>
+                <li>출결·수납·상담 관리 등 행정 기능</li>
+<li>자체 문제은행 구축</li>
+<li>다른 학원 판매용 멀티 테넌트 구조(학원 구분 필드만 설계)</li>
+<li>AI 모델 파인튜닝</li>
+<li>네이티브 앱(iOS/Android) — 모바일 웹으로 제공</li>
+<li>카카오 알림톡 자동 발송(옵션)</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-timeline" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>일정 제안</h1>
+              <blockquote>총 70일 (12/31 이전 완료) 기준 단계별 마일스톤 및 산출물을 제안합니다.</blockquote>
+
+              <h2>전체 일정 요약</h2>
+              <table>
+                <thead>
+                  <tr><th>단계</th><th>기간</th><th>주요 산출물</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>PHASE 1: 착수 · MVP 점검 · 상세 기획</td><td>Day 1–10</td><td>MVP 점검 리포트, 요구사항 정의서, 화면 설계서, 평가셋</td></tr>
+<tr><td>PHASE 2: UI/UX 디자인</td><td>Day 8–20</td><td>디자인 시안·확정본</td></tr>
+<tr><td>PHASE 3: AI 진단 파이프라인</td><td>Day 11–35</td><td>AI 진단 1차 측정 리포트</td></tr>
+<tr><td>PHASE 4: 서비스 개발 (학생·교사·학부모·DB)</td><td>Day 18–50</td><td>스테이징 환경 기능 완료</td></tr>
+<tr><td>PHASE 5: 유사 문제 생성·검증</td><td>Day 30–50</td><td>유사문제 품질 측정 리포트</td></tr>
+<tr><td>PHASE 6: 통합 QA · 교사 검증 · 파일럿 오픈</td><td>Day 49–60</td><td>파일럿 오픈(Day 60)</td></tr>
+<tr><td>PHASE 7: 파일럿 운영 지원 · 튜닝 · 인계</td><td>Day 58–70</td><td>최종 소스·DB 스키마·프롬프트/진단 기준 문서·운영 매뉴얼</td></tr>
+                  
+                </tbody>
+              </table>
+            </article>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <h2 class="mb-4 text-sm font-semibold tracking-[0.14em] text-slate-500">상세 타임라인</h2>
+            <div class="timeline">
+              <div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 1</p>
+  <h4 class="text-base font-semibold text-slate-900">착수 · MVP 점검 · 상세 기획</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 1–10</p>
+  <p class="text-sm leading-7 text-slate-600">MVP 코드·데이터 점검과 오류 목록화, 요구사항·화면 확정, 평가셋(답안 표본·단원·루브릭) 설계, AI 모델별 손글씨 인식률 비교</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: MVP 점검 리포트, 요구사항 정의서, 화면 설계서, 평가셋</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 2</p>
+  <h4 class="text-base font-semibold text-slate-900">UI/UX 디자인</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 8–20</p>
+  <p class="text-sm leading-7 text-slate-600">학생용 모바일 웹, 교사용 PC 웹, 학부모 리포트 디자인(기획 확정 화면부터 병행)</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: 디자인 시안·확정본</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 3</p>
+  <h4 class="text-base font-semibold text-slate-900">AI 진단 파이프라인</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 11–35</p>
+  <p class="text-sm leading-7 text-slate-600">인식·진단 프롬프트, 독립 풀이 교차검증, 신뢰도 라우팅, 단계적 힌트 → 평가셋으로 1차 정확도 측정</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: AI 진단 1차 측정 리포트</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 4</p>
+  <h4 class="text-base font-semibold text-slate-900">서비스 개발 (학생·교사·학부모·DB)</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 18–50</p>
+  <p class="text-sm leading-7 text-slate-600">Firestore 스키마·보안 규칙·익명화, 학생 화면, 교사 이력·수업 준비·검수 화면, 학부모 리포트</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: 스테이징 환경 기능 완료</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 5</p>
+  <h4 class="text-base font-semibold text-slate-900">유사 문제 생성·검증</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 30–50</p>
+  <p class="text-sm leading-7 text-slate-600">문제 프로파일·단원 가드레일·시드 예시 입력, 생성·자동검증·승인 대기열, 교사진 4개 항목 평가</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: 유사문제 품질 측정 리포트</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 6</p>
+  <h4 class="text-base font-semibold text-slate-900">통합 QA · 교사 검증 · 파일럿 오픈</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 49–60</p>
+  <p class="text-sm leading-7 text-slate-600">통합 테스트, 교사진 진단 적합성 검증, 실제 숙제로 리허설, 15명 계정 발급</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: 파일럿 오픈(Day 60)</li></ul>
+</div>
+<div class="timeline-item">
+  <p class="text-sm font-semibold tracking-[0.14em] text-sky-700">PHASE 7</p>
+  <h4 class="text-base font-semibold text-slate-900">파일럿 운영 지원 · 튜닝 · 인계</h4>
+  <p class="mb-1 text-sm font-semibold text-amber-600">Day 58–70</p>
+  <p class="text-sm leading-7 text-slate-600">실사용 모니터링, 교사 수정 사례 반영, 프롬프트 튜닝, 문서·인계 세션</p>
+  <ul class="mt-2 list-disc pl-5 text-sm text-slate-500"><li>산출물: 최종 소스·DB 스키마·프롬프트/진단 기준 문서·운영 매뉴얼</li></ul>
+</div>
+              
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h2>마일스톤 체크포인트</h2>
+              <table>
+                <thead>
+                  <tr><th>마일스톤</th><th>시점</th><th>검수 기준</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>M1: 요구사항 확정</td><td>Day 10</td><td>요구사항 정의서·화면 설계서·평가셋 승인</td></tr>
+<tr><td>M2: 디자인 확정</td><td>Day 20</td><td>학생·교사·학부모 화면 디자인 승인</td></tr>
+<tr><td>M3: AI 진단 1차 검증</td><td>Day 35</td><td>평가셋 기준 인식·진단·교차검증 측정 리포트 공유</td></tr>
+<tr><td>M4: 기능 완료</td><td>Day 50</td><td>스테이징에서 필수 과업 2-1~2-5 시연, 유사문제 품질 리포트</td></tr>
+<tr><td>M5: 파일럿 오픈</td><td>Day 60</td><td>15명 계정 발급, 교사진 진단 적합성 검증 완료</td></tr>
+<tr><td>M6: 최종 납품·인계</td><td>Day 70 (12/31 이전)</td><td>소스·DB 스키마·프롬프트/진단 기준 문서·운영 매뉴얼 전달, 인계 세션</td></tr>
+                  
+                </tbody>
+              </table>
+
+              <h2>커뮤니케이션 계획</h2>
+              <table>
+                <tr><th>항목</th><th>방식</th><th>주기</th></tr>
+                <tr><td>일일 진행 공유</td><td>Slack / 카카오톡</td><td>매일</td></tr>
+                <tr><td>주간 미팅</td><td>Zoom / Google Meet</td><td>주 1회</td></tr>
+                <tr><td>마일스톤 리뷰</td><td>화면 공유 + 문서</td><td>단계 완료 시</td></tr>
+                <tr><td>이슈 트래킹</td><td>GitHub Issues</td><td>상시</td></tr>
+              </table>
+            </article>
+          </div>
+        </div>
+
+        
+        
+        
+        <div id="page-portfolio" class="page-section space-y-6">
+          <div class="rounded-2xl border border-slate-200/70 bg-white/95 p-5 shadow-soft backdrop-blur md:p-8">
+            <article class="doc-content">
+              <h1>유사 프로젝트 경험</h1>
+              <blockquote>본 프로젝트와 유사한 기능/기술 스택을 활용한 수행 경험을 소개합니다.</blockquote>
+            </article>
+          </div>
+
+          
+          <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">3중</p><p class="mt-1 text-sm text-slate-500">유사문제 품질 검증</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">2-way</p><p class="mt-1 text-sm text-slate-500">진단 교차검증</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">15명</p><p class="mt-1 text-sm text-slate-500">파일럿 운영 지원</p></div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-4 text-center shadow-soft backdrop-blur"><p class="text-2xl font-bold text-sky-700">D-70</p><p class="mt-1 text-sm text-slate-500">12/31 이전 완료</p></div>
+          </div>
+
+          
+          <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+  <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">AI · LLM 오케스트레이션</div>
+  <h3 class="text-lg font-semibold tracking-tight text-slate-900">AI-Native 멀티 에이전트 개발 프레임워크</h3>
+  <p class="mt-1 text-sm text-slate-400">AI / 자동화 · 2025~ · 설계·개발 100%</p>
+  <div class="mt-3 doc-content">
+    <h4>프로젝트 개요</h4><p>여러 LLM(Claude·Gemini·Codex 등)을 역할별로 오케스트레이션하고, 결과물을 품질 게이트로 자동 검증하는 AI 개발 프레임워크입니다.</p>
+    <h4>핵심 기능</h4><ul><li>멀티 모델 오케스트레이션과 역할(페르소나) 기반 프롬프트 설계</li><li>12종 품질 게이트 — AI 산출물을 다른 검증 단계가 교차 확인</li><li>프롬프트·지식을 문서로 관리(Knowledge-as-Code), 134+ 스킬 모듈</li></ul>
+    <h4>본 프로젝트와의 유사점</h4><p><strong>담당 범위: 전체 설계·개발.</strong> “AI 진단 × AI 독립 풀이 교차검증”과 “유사문제 생성 → 자동 검증 → 재생성” 구조는 이 프로젝트의 품질 게이트 설계를 그대로 적용합니다. 프롬프트와 진단 기준을 코드와 분리된 문서로 관리해 대표님이 직접 수정할 수 있게 하는 방식도 같습니다.</p>
+    <h4>기술 스택</h4>
+    <div class="flex flex-wrap gap-1.5 not-prose"><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">React</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Claude Agent SDK</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MCP</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">PostgreSQL</span></div>
+  </div>
+</div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+  <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">이미지 인식 · Firebase</div>
+  <h3 class="text-lg font-semibold tracking-tight text-slate-900">Connectin — 디지털 명함 & 네트워킹 플랫폼</h3>
+  <p class="mt-1 text-sm text-slate-400">B2B 플랫폼 · 2025.05~08 · 설계·개발 100%</p>
+  <div class="mt-3 doc-content">
+    <h4>프로젝트 개요</h4><p>카메라로 촬영한 실물 명함을 인식해 디지털 명함으로 변환하고, 근거리 탐색·암호화 메시징을 제공하는 크로스플랫폼 서비스입니다.</p>
+    <h4>핵심 기능</h4><ul><li>카메라 촬영 → 이미지 인식(OCR) → 이름·회사·연락처 필드 구조화</li><li>Firebase Auth·FCM·App Check 기반 인증·보안</li><li>E2E 암호화와 키 관리 등 개인정보 보호 설계</li></ul>
+    <h4>본 프로젝트와의 유사점</h4><p><strong>담당 범위: 촬영 화면·인식 결과 구조화·검증 UI, Firebase 연동.</strong> 휴대전화 촬영 이미지 품질(기울기·흐림·조명) 대응과 인식 결과를 구조화 데이터로 바꾸는 흐름이 손글씨 풀이 촬영 → 인식과 같습니다. 개인정보 분리 보관 설계 경험도 2-5 과업에 그대로 적용합니다.</p>
+    <h4>기술 스택</h4>
+    <div class="flex flex-wrap gap-1.5 not-prose"><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Flutter</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">TypeScript</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Firebase</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">PostgreSQL</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">OCR</span></div>
+  </div>
+</div>
+<div class="rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-soft backdrop-blur md:p-8">
+  <div class="mb-3 inline-flex rounded-full border px-2.5 py-1 text-sm font-semibold tracking-[0.12em] bg-sky-100 text-sky-700 border-sky-200">AI 분석 · 3자 리포트</div>
+  <h3 class="text-lg font-semibold tracking-tight text-slate-900">Harmony Link — 시니어 주간보호 관리 플랫폼</h3>
+  <p class="mt-1 text-sm text-slate-400">B2B SaaS · 2025 · 설계·개발 100%</p>
+  <div class="mt-3 doc-content">
+    <h4>프로젝트 개요</h4><p>종사자(기록) · 보호자(확인) · 관리자(운영) 3개 역할이 하나의 데이터로 연결되고, AI가 기록을 분석해 리포트를 만드는 멀티플랫폼 관리 시스템입니다.</p>
+    <h4>핵심 기능</h4><ul><li>OpenAI 연동 AI 건강 데이터 분석·이상 징후 감지</li><li>보호자용 리포트·알림, 관리자 웹 패널</li><li>역할별 접근 권한과 민감정보 보호</li></ul>
+    <h4>본 프로젝트와의 유사점</h4><p><strong>담당 범위: 전체 설계·풀스택·인프라.</strong> 학생(제출) · 교사(검수·수업 준비) · 학부모(리포트) 3자 구조와 역할별 권한, AI 분석 결과를 사람이 확인하는 흐름이 본 프로젝트와 같습니다.</p>
+    <h4>기술 스택</h4>
+    <div class="flex flex-wrap gap-1.5 not-prose"><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">NestJS</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Next.js</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Flutter</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">MySQL</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">OpenAI API</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">Firebase</span><span class="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-sm text-slate-500">AWS CDK</span></div>
+  </div>
+</div>
+            
+          </div>
+
+          
+          <div class="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 to-brand-50 p-6 text-center shadow-soft md:p-10">
+            <h2 class="text-xl font-bold tracking-tight text-slate-900 md:text-2xl">함께 만들어 가겠습니다</h2>
+            <p class="mx-auto mt-3 max-w-lg text-sm leading-7 text-slate-600">프로젝트에 대해 더 자세한 논의를 원하시면 미팅을 신청해 주세요.</p>
+          </div>
+        </div>
+
+        
+        <div id="page-nav" class="mt-6 flex items-center justify-between gap-4" style="display:none;">
+          <a id="nav-prev" href="#home"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white">
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <span>
+              <span class="block text-xs text-slate-400">이전</span>
+              <span id="nav-prev-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">홈</span>
+            </span>
+          </a>
+          <a id="nav-next" href="#overview"
+             class="group flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-3 shadow-soft backdrop-blur transition hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white text-right ml-auto">
+            <span>
+              <span class="block text-xs text-slate-400">다음</span>
+              <span id="nav-next-label" class="block text-sm font-semibold text-slate-700 group-hover:text-sky-700">프로젝트 소개</span>
+            </span>
+            <svg class="w-5 h-5 text-slate-400 transition group-hover:text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+          </a>
+        </div>
+
+      </main>
+    </div>
+
+    <footer class="mt-10 border-t border-slate-200 pt-6 text-xs text-slate-500">
+      &copy; 2026 &middot; 본 제안서는 수학 손글씨 풀이 AI 진단 웹 서비스 구축 프로젝트를 위해 작성되었습니다.
+    </footer>
+  </div>
+
+  
+  <script>
+    const pages = ['home', 'overview', 'estimate', 'manday', 'prd', 'timeline', 'portfolio'];
+    const pageLabels = {
+      home: '홈', overview: '프로젝트 소개', estimate: '견적서',
+      manday: '공수계산서', prd: 'PRD', timeline: '일정 제안', portfolio: '유사 프로젝트 경험'
+    };
+
+    function navigate(pageId) {
+      if (!pages.includes(pageId)) pageId = 'home';
+      // Hide all pages
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      // Show target
+      const target = document.getElementById('page-' + pageId);
+      if (target) target.classList.add('active');
+      // Update nav
+      document.querySelectorAll('.nav-link').forEach(link => {
+        if (link.dataset.page === pageId) {
+          link.className = 'nav-link block rounded-xl border px-3 py-2 text-sm border-sky-200 bg-sky-50 font-medium text-sky-700';
+        } else {
+          link.className = 'nav-link block rounded-xl border border-transparent px-3 py-2 text-sm text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-slate-900';
+        }
+      });
+      // Update bottom page navigation
+      updatePageNav(pageId);
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Close mobile sidebar
+      closeSidebar();
+    }
+
+    function updatePageNav(pageId) {
+      const nav = document.getElementById('page-nav');
+      const idx = pages.indexOf(pageId);
+      const prevBtn = document.getElementById('nav-prev');
+      const nextBtn = document.getElementById('nav-next');
+      const prevLabel = document.getElementById('nav-prev-label');
+      const nextLabel = document.getElementById('nav-next-label');
+
+      // Show nav on all pages except home
+      nav.style.display = (pageId === 'home') ? 'none' : 'flex';
+
+      // Previous button
+      if (idx > 0) {
+        prevBtn.href = '#' + pages[idx - 1];
+        prevLabel.textContent = pageLabels[pages[idx - 1]];
+        prevBtn.style.visibility = 'visible';
+      } else {
+        prevBtn.style.visibility = 'hidden';
+      }
+
+      // Next button
+      if (idx < pages.length - 1) {
+        nextBtn.href = '#' + pages[idx + 1];
+        nextLabel.textContent = pageLabels[pages[idx + 1]];
+        nextBtn.style.visibility = 'visible';
+      } else {
+        nextBtn.style.visibility = 'hidden';
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-backdrop').classList.remove('open');
+    }
+
+    // Hash routing
+    function handleHash() {
+      const hash = (location.hash || '#home').replace('#', '');
+      navigate(hash);
+    }
+    window.addEventListener('hashchange', handleHash);
+    window.addEventListener('DOMContentLoaded', handleHash);
+
+    // Mobile sidebar toggle
+    document.getElementById('sidebar-toggle').addEventListener('click', function() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebar-backdrop').classList.toggle('open');
+    });
+  </script>
+</body>
+</html>
